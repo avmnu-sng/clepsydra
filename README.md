@@ -1,5 +1,6 @@
 [![Maintainability](https://api.codeclimate.com/v1/badges/906b5c8d15a66897d350/maintainability)](https://codeclimate.com/github/avmnu-sng/clepsydra/maintainability)
 [![Test Coverage](https://api.codeclimate.com/v1/badges/906b5c8d15a66897d350/test_coverage)](https://codeclimate.com/github/avmnu-sng/clepsydra/test_coverage)
+[![Gem Version](https://badge.fury.io/rb/clepsydra.svg)](https://badge.fury.io/rb/clepsydra)
 
 # Clepsydra
 

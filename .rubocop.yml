@@ -1,0 +1,61 @@
+require:
+  - rubocop-performance
+  - rubocop-rake
+  - rubocop-rspec
+
+AllCops:
+  NewCops: enable
+  Exclude:
+    - "clepsydra.gemspec"
+    - "tmp/**/*"
+    - "vendor/**/*"
+
+Layout/ClassStructure:
+  Enabled: true
+  Categories:
+    module_inclusion:
+      - include
+      - prepend
+      - extend
+  ExpectedOrder:
+    - module_inclusion
+    - constants
+    - public_class_methods
+    - initializer
+    - instance_methods
+    - protected_methods
+    - private_methods
+
+Layout/FirstArrayElementIndentation:
+  EnforcedStyle: consistent
+
+Layout/MultilineMethodCallIndentation:
+  EnforcedStyle: indented
+
+Layout/MultilineOperationIndentation:
+  EnforcedStyle: indented
+
+Lint/EmptyBlock:
+  Exclude:
+    - "benchmark/report.rb"
+    - "spec/**/*.rb"
+
+Lint/RescueException:
+  Exclude:
+    - "lib/clepsydra/instrumenter.rb"
+
+Metrics/BlockLength:
+  Exclude:
+    - "spec/**/*.rb"
+
+RSpec/ExampleLength:
+  Enabled: false
+
+RSpec/MultipleExpectations:
+  Enabled: false
+
+RSpec/NestedGroups:
+  Max: 5
+
+Style/Documentation:
+  Enabled: false

@@ -2,9 +2,15 @@
 
 require 'pry'
 require 'simplecov'
+require 'simplecov_json_formatter'
 require 'timecop'
 
 require 'clepsydra'
+
+SimpleCov.formatters = [
+  SimpleCov::Formatter::HTMLFormatter,
+  SimpleCov::Formatter::JSONFormatter
+].freeze
 
 RSpec.configure do |config|
   config.example_status_persistence_file_path = 'spec/examples.txt'

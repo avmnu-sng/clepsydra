@@ -2,6 +2,6 @@
 
 module Clepsydra
   module Version
-    VALUE = '0.0.1'
+    VALUE = '0.1.0'
   end
 end

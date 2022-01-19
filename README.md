@@ -7,6 +7,47 @@
 **Clepsydra** is an instrumentation tool allowing instrumenting events. You can
 subscribe to events to receive instrument notifications once done.
 
+## Why Clepsydra
+
+- Clepsydra provides correct execution time information for multiple subscribers
+of the same event compared to `ActiveSupport::Notifications`:
+
+  ```ruby
+  5.times do
+    ActiveSupport::Notifications.subscribe('foo') do |_name, start, finish, _id, _payload|
+      puts "#{start.to_i} #{finish.to_i} #{finish - start}"
+
+      sleep 1
+    end
+  end
+
+  ActiveSupport::Notifications.instrument('foo') {}
+
+  # 1642778642 1642778642 8.0e-06
+  # 1642778642 1642778643 1.003928
+  # 1642778642 1642778644 2.008781
+  # 1642778642 1642778645 3.014062
+  # 1642778642 1642778646 4.016004
+
+  5.times do
+    Clepsydra.subscribe('foo') do |_event_data, start, finish, _payload|
+      puts "#{start.to_i} #{finish.to_i} #{finish - start}"
+
+      sleep 1
+    end
+  end
+
+  Clepsydra.instrument('foo') {}
+
+  # 1642778782 1642778782 1.7e-05
+  # 1642778782 1642778782 1.7e-05
+  # 1642778782 1642778782 1.7e-05
+  # 1642778782 1642778782 1.7e-05
+  # 1642778782 1642778782 1.7e-05
+  ```
+
+- Clepsydra offers APIs to measure non-blocking events correctly.
+
 ## Installation
 
 Add this line to your `Gemfile` and `bundle install`:
@@ -19,24 +60,7 @@ Clepsydra requires **Ruby >= 2.5.0**.
 
 ## Benchmark
 
-Run `./benchmark/report.rb` in the project root directory to benchmark
-**`Clepsydra`** and **`ActiveSupport::Notifications`**. Make sure to have **Ruby >= 2.7.0**.
-
-### Sample Report
-
-```
-================================================================================
-Scenario: 1 thread with 100k instruments per thread
-                                     user     system      total        real
-Clepsydra                        1.661837   0.029577   1.691414 (  1.692077)
-ActiveSupport::Notifications     1.296754   0.004308   1.301062 (  1.302075)
-
-================================================================================
-Scenario: 10 threads with 10k instruments per thread
-                                     user     system      total        real
-Clepsydra                        4.781395   3.896587   8.677982 (  6.436222)
-ActiveSupport::Notifications     7.648087  12.432460  20.080547 ( 17.625330)
-```
+Read the [benchmark](./BENCHMARK.md) document.
 
 ## Usage
 
@@ -55,6 +79,7 @@ Clepsydra.instrument('foo', { bar: 'baz' }) do
 end
 ```
 
+
 ### Subscribe
 
 - **`Clepsyndra.subscribe(event_name) { |*args| } => Clepsyndra::Subscriber`**
@@ -64,16 +89,18 @@ Subscribers consume instrumented events. You can register multiple subscribers
 for the same event.
 
 ```ruby
-Clepsydra.subscribe('foo') do |event_name, event_id, instrumenter_id, subscriber_id, start, finish, payload|
+Clepsydra.subscribe('foo') do |event_data, start, finish, payload|
   # This is a blocking call avoid long-running tasks
   #
-  # event_name      [String] name of the event
-  # event_id        [String] unique ID of the event
-  # instrumenter_id [String] unique ID of the instrumenter who fired the event
-  # subscriber_id   [String] unique ID of the current subscriber
-  # start           [Time] instrumented block execution start time
-  # finish          [Time] instumented block execution end time
-  # payload         [Hash] the payload
+  # event_data            [Hash] the event data
+  #   * :event_name       [String] the event name
+  #   * :event_id         [String] unique ID of the event
+  #   * :notifier_id      [String] unique ID of the notifier
+  #   * :instrumenter_id  [String] unique ID of the instrumenter who fired the event
+  #   * :subscriber_id    [String] unique ID of the current subscriber
+  # start                 [Time] instrumented block execution start time
+  # finish                [Time] instumented block execution end time
+  # payload               [Hash] the payload
 end
 ```
 
@@ -87,8 +114,7 @@ better accuracy as it uses monotonic time.
 
 ### Unsubscribe
 
-- **`Clepsydra.unsubscribe_all(event_name)`**
-- **`Clepsydra.unsubscribe(subscriber)`**
+- **`Clepsydra.unsubscribe(event_name_or_subscriber)`**
 
 You can unsubscribe either all the subscribers to a particular event or a specific subscriber.
 
@@ -98,7 +124,7 @@ Clepsydra.subscribe('foo') {}
 Clepsydra.monotonic_subscribe('foo') {}
 
 # Unsubscribe all
-Clepsydra.unsubscribe_all('foo')
+Clepsydra.unsubscribe('foo')
 
 first = Clepsydra.subscribe('foo') {}
 second = Clepsydra.monotonic_subscribe('foo') {}

@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'concurrent/map'
-require 'pry'
 require 'securerandom'
 
 require_relative 'clepsydra/instrumenter'
@@ -11,6 +10,7 @@ require_relative 'clepsydra/token_provider'
 require_relative 'clepsydra/version'
 
 module Clepsydra
+  class InvalidInstrumentError < StandardError; end
   class InvalidSubscriptionError < StandardError; end
 
   class << self
@@ -26,18 +26,16 @@ module Clepsydra
       notifier.subscribe(event_name, true, &block)
     end
 
-    def unsubscribe_all(event_name)
-      notifier.unsubscribe_all(event_name) if event_name.is_a?(String)
-    end
-
-    def unsubscribe(subscriber)
-      notifier.unsubscribe(subscriber) if subscriber.is_a?(Clepsydra::Subscriber)
+    def unsubscribe(event_name_or_subscriber)
+      notifier.unsubscribe(event_name_or_subscriber)
     end
 
     def instrument(event_name, payload = {})
+      raise InvalidInstrumentError, 'No block given' unless block_given?
+
       if notifier.subscribed?(event_name)
-        instrumenter.instrument(event_name, payload) { yield payload if block_given? }
-      elsif block_given?
+        instrumenter.instrument(event_name, payload) { yield payload }
+      else
         yield payload
       end
     end

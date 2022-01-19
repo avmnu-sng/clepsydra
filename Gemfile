@@ -20,10 +20,10 @@ group :test do
   gem 'timecop', '~> 0.9'
 end
 
-if RUBY_ENGINE == 'ruby' && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.7.0')
-  group :benchmark do
-    gem 'activesupport', '~> 7.0'
-  end
+group :benchmark do
+  gem 'activesupport'
+  gem 'benchmark-ips', '~> 2.9'
+  gem 'kalibera', '~> 0.1'
 end
 
 gemspec

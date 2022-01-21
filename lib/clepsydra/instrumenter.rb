@@ -23,7 +23,7 @@ module Clepsydra
     end
 
     def start(event_name)
-      @notifier.start(event_name, "event_#{Clepsydra::TokenProvider.generate}")
+      @notifier.start(event_name)
     end
 
     def finish(event_name, event_id, payload)

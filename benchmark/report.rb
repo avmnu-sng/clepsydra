@@ -1,17 +1,15 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-return unless RUBY_ENGINE == 'ruby' && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.7.0')
-
 require 'active_support'
-require 'benchmark'
+require 'benchmark/ips'
 
 require_relative '../lib/clepsydra'
 
 UNDER_TEST = [Clepsydra, ActiveSupport::Notifications].freeze
 
-EVENTS_COUNT = 100_000
-INSTRUMENTS_COUNT = 100_000
+SUBSCRIBERS_COUNT = 1_000_000
+INSTRUMENTS_COUNT = 1_000_000
 
 def subscribers(clazz)
   var = if clazz == ActiveSupport::Notifications
@@ -25,22 +23,15 @@ end
 
 def setup
   UNDER_TEST.each do |clazz|
-    EVENTS_COUNT.times { |i| clazz.subscribe("foo-#{i}") {} }
-    EVENTS_COUNT.times { |i| clazz.monotonic_subscribe("foo-#{i}") {} }
+    SUBSCRIBERS_COUNT.times { |i| clazz.subscribe("foo-#{i}") {} }
 
-    raise 'Could not subscribe to all events' if subscribers(clazz) != 2 * EVENTS_COUNT
+    raise 'Could not subscribe to all events' if subscribers(clazz) != SUBSCRIBERS_COUNT
   end
 end
 
 def teardown
   UNDER_TEST.each do |clazz|
-    action = if clazz == ActiveSupport::Notifications
-               :unsubscribe
-             else
-               :unsubscribe_all
-             end
-
-    EVENTS_COUNT.times { |i| clazz.send(action, "foo-#{i}") }
+    SUBSCRIBERS_COUNT.times { |i| clazz.unsubscribe("foo-#{i}") }
   end
 end
 
@@ -57,13 +48,12 @@ def instrument(clazz, threads_count, batch_size)
 end
 
 begin
-  puts 'Benchmarking 100k instruments with 2 subscribers for each event'
-  puts 'Each scenario is run 3 times and the total time is reported'
+  puts 'Benchmarking 1M unique instruments'
 
   setup
 
   threads_counts = [1, 10, 25, 50, 100, 200, 400]
-  batch_size_strs = %w[100k 10k 4k 2k 1k 500 250]
+  batch_size_strs = %w[1M 100K 40K 20K 10K 5K 2.5K]
 
   threads_counts.zip(batch_size_strs).each do |threads_count, batch_size_str|
     batch_size = INSTRUMENTS_COUNT / threads_count
@@ -81,18 +71,20 @@ begin
       with #{batch_size_str} instruments per thread
     SCENARIO
 
-    Benchmark.bm(30) do |bm|
+    Benchmark.ips do |bm|
+      bm.config(stats: :bootstrap, confidence: 99.9)
+
       UNDER_TEST.each do |clazz|
         bm.report(clazz.name) do
-          3.times do
-            if threads_count == 1
-              INSTRUMENTS_COUNT.times { |i| clazz.instrument("foo-#{i}") { nil } }
-            else
-              instrument(clazz, threads_count, batch_size)
-            end
+          if threads_count == 1
+            INSTRUMENTS_COUNT.times { |i| clazz.instrument("foo-#{i}") { nil } }
+          else
+            instrument(clazz, threads_count, batch_size)
           end
         end
       end
+
+      bm.compare!
     end
   end
 ensure
